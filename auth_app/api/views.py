@@ -1,9 +1,14 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from auth_app.services import build_tokens, login_success_payload, set_auth_cookies
+from auth_app.services import (
+    build_logout_response,
+    build_tokens,
+    login_success_payload,
+    set_auth_cookies,
+)
 
 from .serializers import LoginSerializer, RegisterSerializer
 
@@ -32,4 +37,10 @@ def login(request):
     access, refresh = build_tokens(user)
     response = Response(login_success_payload(user))
     return set_auth_cookies(response, access, refresh)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    return build_logout_response(request)
 

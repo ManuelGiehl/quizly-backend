@@ -1,7 +1,14 @@
 """JWT cookie helpers for auth endpoints."""
 
 from django.conf import settings
+from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+LOGOUT_SUCCESS_DETAIL = (
+    "Log-Out successfully! All Tokens will be deleted. "
+    "Refresh token is now invalid."
+)
 
 
 def build_tokens(user):
@@ -33,3 +40,28 @@ def login_success_payload(user):
             "email": user.email,
         },
     }
+
+
+def clear_auth_cookies(response):
+    """Remove JWT cookies from the client (httpOnly cookies must be cleared server-side)."""
+    response.delete_cookie(settings.ACCESS_TOKEN_COOKIE, path="/")
+    response.delete_cookie(settings.REFRESH_TOKEN_COOKIE, path="/")
+    return response
+
+
+def blacklist_refresh_if_present(refresh_token):
+    """Invalidate refresh JWT in the blacklist table; ignore invalid/expired tokens."""
+    if not refresh_token:
+        return
+    try:
+        RefreshToken(refresh_token).blacklist()
+    except TokenError:
+        pass
+
+
+def build_logout_response(request):
+    """200 response: blacklist refresh cookie, clear cookies, exact API detail string."""
+    refresh = request.COOKIES.get(settings.REFRESH_TOKEN_COOKIE)
+    blacklist_refresh_if_present(refresh)
+    response = Response({"detail": LOGOUT_SUCCESS_DETAIL})
+    return clear_auth_cookies(response)
