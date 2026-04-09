@@ -7,6 +7,7 @@ urlpatterns = [
     path("register/", views.register, name="auth-register"),
     path("login/", views.login, name="auth-login"),
     path("logout/", views.logout, name="auth-logout"),
+    path("token/refresh/", views.token_refresh, name="auth-token-refresh"),
     path("me/", cookietest.me, name="auth-me"),
 ]
 

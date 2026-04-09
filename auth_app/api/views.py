@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from auth_app.services import (
     build_logout_response,
+    build_token_refresh_response,
     build_tokens,
     login_success_payload,
     set_auth_cookies,
@@ -43,4 +44,10 @@ def login(request):
 @permission_classes([IsAuthenticated])
 def logout(request):
     return build_logout_response(request)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def token_refresh(request):
+    return build_token_refresh_response(request)
 
