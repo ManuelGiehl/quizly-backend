@@ -125,6 +125,7 @@ STATIC_URL = 'static/'
 # REST / Auth
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "auth_app.authentication.CookieJWTAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }

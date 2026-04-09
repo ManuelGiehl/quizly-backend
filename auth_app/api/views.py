@@ -3,7 +3,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .serializers import RegisterSerializer
+from auth_app.services import build_tokens, login_success_payload, set_auth_cookies
+
+from .serializers import LoginSerializer, RegisterSerializer
 
 
 @api_view(["GET"])
@@ -19,4 +21,15 @@ def register(request):
     serializer.is_valid(raise_exception=True)
     serializer.create(serializer.validated_data)
     return Response({"detail": "User created successfully!"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def login(request):
+    serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.validated_data["user"]
+    access, refresh = build_tokens(user)
+    response = Response(login_success_payload(user))
+    return set_auth_cookies(response, access, refresh)
 

@@ -1,6 +1,7 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 
 User = get_user_model()
 
@@ -23,4 +24,21 @@ class RegisterSerializer(serializers.Serializer):
         validated_data.pop("confirmed_password", None)
         password = validated_data.pop("password")
         return User.objects.create_user(password=password, **validated_data)
+
+
+class LoginSerializer(serializers.Serializer):
+    """Validates username/password; raises 401 on wrong credentials (generic message)."""
+
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = authenticate(
+            username=attrs["username"],
+            password=attrs["password"],
+        )
+        if user is None:
+            raise AuthenticationFailed("Invalid credentials.")
+        attrs["user"] = user
+        return attrs
 
