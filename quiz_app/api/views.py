@@ -5,7 +5,11 @@ from rest_framework.response import Response
 
 from quiz_app.models import Quiz
 
-from .serializers import QuizCreateSerializer, QuizDetailSerializer
+from .serializers import (
+    QuizCreateSerializer,
+    QuizDetailSerializer,
+    QuizPartialUpdateSerializer,
+)
 
 
 def _quiz_queryset_for_user(user):
@@ -19,18 +23,32 @@ def _quiz_by_pk_or_none(pk):
         return None
 
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def quiz_detail(request, pk):
+def _owned_quiz_or_error_response(request, pk):
     quiz = _quiz_by_pk_or_none(pk)
     if quiz is None:
-        return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        return None, Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
     if quiz.owner_id != request.user.id:
-        return Response(
+        err = Response(
             {"detail": "You do not have permission to access this quiz."},
             status=status.HTTP_403_FORBIDDEN,
         )
-    return Response(QuizDetailSerializer(quiz).data)
+        return None, err
+    return quiz, None
+
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
+def quiz_detail(request, pk):
+    quiz, err = _owned_quiz_or_error_response(request, pk)
+    if err is not None:
+        return err
+    if request.method == "GET":
+        return Response(QuizDetailSerializer(quiz).data)
+    serializer = QuizPartialUpdateSerializer(quiz, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    refreshed = _quiz_queryset_for_user(request.user).get(pk=quiz.pk)
+    return Response(QuizDetailSerializer(refreshed).data)
 
 
 @api_view(["GET", "POST"])

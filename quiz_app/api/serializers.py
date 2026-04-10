@@ -34,6 +34,18 @@ class QuizDetailSerializer(serializers.ModelSerializer):
         )
 
 
+class QuizPartialUpdateSerializer(serializers.ModelSerializer):
+    """PATCH: only ``title`` and ``description`` (per API contract)."""
+
+    class Meta:
+        model = Quiz
+        fields = ("title", "description")
+        extra_kwargs = {
+            "title": {"required": False, "allow_blank": False},
+            "description": {"required": False, "allow_blank": True},
+        }
+
+
 class QuizCreateSerializer(serializers.Serializer):
     url = serializers.URLField()
 
