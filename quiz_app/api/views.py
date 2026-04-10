@@ -8,12 +8,18 @@ from quiz_app.models import Quiz
 from .serializers import QuizCreateSerializer, QuizDetailSerializer
 
 
-@api_view(["POST"])
+def _quiz_queryset_for_user(user):
+    return Quiz.objects.filter(owner=user).prefetch_related("questions")
+
+
+@api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
-def quiz_create(request):
+def quiz_list(request):
+    if request.method == "GET":
+        quizzes = _quiz_queryset_for_user(request.user)
+        return Response(QuizDetailSerializer(quizzes, many=True).data)
     serializer = QuizCreateSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
     quiz = serializer.save()
-    quiz = Quiz.objects.prefetch_related("questions").get(pk=quiz.pk)
-    out = QuizDetailSerializer(quiz)
-    return Response(out.data, status=status.HTTP_201_CREATED)
+    quiz = _quiz_queryset_for_user(request.user).get(pk=quiz.pk)
+    return Response(QuizDetailSerializer(quiz).data, status=status.HTTP_201_CREATED)
