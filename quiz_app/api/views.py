@@ -36,7 +36,15 @@ def _owned_quiz_or_error_response(request, pk):
     return quiz, None
 
 
-@api_view(["GET", "PATCH"])
+def _patch_quiz_response(quiz, request, user):
+    serializer = QuizPartialUpdateSerializer(quiz, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    refreshed = _quiz_queryset_for_user(user).get(pk=quiz.pk)
+    return Response(QuizDetailSerializer(refreshed).data)
+
+
+@api_view(["GET", "PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])
 def quiz_detail(request, pk):
     quiz, err = _owned_quiz_or_error_response(request, pk)
@@ -44,11 +52,10 @@ def quiz_detail(request, pk):
         return err
     if request.method == "GET":
         return Response(QuizDetailSerializer(quiz).data)
-    serializer = QuizPartialUpdateSerializer(quiz, data=request.data, partial=True)
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    refreshed = _quiz_queryset_for_user(request.user).get(pk=quiz.pk)
-    return Response(QuizDetailSerializer(refreshed).data)
+    if request.method == "DELETE":
+        quiz.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    return _patch_quiz_response(quiz, request, request.user)
 
 
 @api_view(["GET", "POST"])
