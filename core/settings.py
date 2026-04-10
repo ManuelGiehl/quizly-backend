@@ -137,6 +137,18 @@ AUTH_COOKIE_SECURE = False
 AUTH_COOKIE_SAMESITE = "Lax"
 
 CORS_ALLOW_CREDENTIALS = True
+# Required when the frontend is served from another origin (e.g. Live Server).
+# With credentials, the origin must be explicit (no wildcard).
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
