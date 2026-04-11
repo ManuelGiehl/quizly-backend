@@ -70,7 +70,7 @@ def _title_and_transcript(canonical_url: str) -> tuple[str, str]:
 
 def create_quiz_from_youtube(owner, canonical_url: str) -> Quiz:
     """Full pipeline: metadata + download + Whisper + Gemini → persisted quiz."""
-    _yt_title, transcript = _title_and_transcript(canonical_url)
+    _, transcript = _title_and_transcript(canonical_url)
     if not transcript.strip():
         raise ValueError("Transcript is empty; cannot generate a quiz.")
     payload = generate_quiz_from_transcript(transcript)

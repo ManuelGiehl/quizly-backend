@@ -63,9 +63,5 @@ class QuizCreateSerializer(serializers.Serializer):
         canonical = validated_data["url"]
         try:
             return create_quiz_from_youtube(request.user, canonical)
-        except ValueError as exc:
-            raise serializers.ValidationError({"url": str(exc)}) from exc
-        except TranscriptionError as exc:
-            raise serializers.ValidationError({"url": str(exc)}) from exc
-        except GeminiQuizError as exc:
+        except (ValueError, TranscriptionError, GeminiQuizError) as exc:
             raise serializers.ValidationError({"url": str(exc)}) from exc

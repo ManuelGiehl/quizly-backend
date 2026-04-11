@@ -1,3 +1,1 @@
-from django.contrib import admin
-
-# Register your models here.
+"""No custom models; extend ``django.contrib.admin`` here only if this app gains models."""

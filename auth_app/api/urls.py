@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import cookietest, views
+from . import views
 
 urlpatterns = [
     path("health/", views.health, name="auth-health"),
@@ -8,6 +8,6 @@ urlpatterns = [
     path("login/", views.login, name="auth-login"),
     path("logout/", views.logout, name="auth-logout"),
     path("token/refresh/", views.token_refresh, name="auth-token-refresh"),
-    path("me/", cookietest.me, name="auth-me"),
+    path("me/", views.me, name="auth-me"),
 ]
 

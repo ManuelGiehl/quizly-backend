@@ -51,3 +51,13 @@ def logout(request):
 def token_refresh(request):
     return build_token_refresh_response(request)
 
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def me(request):
+    """Return the authenticated user when the JWT cookie (or header) is valid."""
+    user = request.user
+    return Response(
+        {"id": user.id, "username": user.username, "email": user.email},
+    )
+
