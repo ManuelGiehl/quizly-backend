@@ -1,7 +1,9 @@
 from rest_framework import serializers
 
 from quiz_app.models import Question, Quiz
-from quiz_app.services.stub_quiz import create_stub_quiz
+from quiz_app.services.gemini_quiz import GeminiQuizError
+from quiz_app.services.quiz_from_video import create_quiz_from_youtube
+from quiz_app.services.transcription import TranscriptionError
 from quiz_app.services.youtube import normalize_youtube_watch_url
 
 
@@ -30,6 +32,7 @@ class QuizDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "video_url",
+            "transcript",
             "questions",
         )
 
@@ -58,4 +61,11 @@ class QuizCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         request = self.context["request"]
         canonical = validated_data["url"]
-        return create_stub_quiz(request.user, canonical)
+        try:
+            return create_quiz_from_youtube(request.user, canonical)
+        except ValueError as exc:
+            raise serializers.ValidationError({"url": str(exc)}) from exc
+        except TranscriptionError as exc:
+            raise serializers.ValidationError({"url": str(exc)}) from exc
+        except GeminiQuizError as exc:
+            raise serializers.ValidationError({"url": str(exc)}) from exc

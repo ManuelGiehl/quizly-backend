@@ -175,3 +175,12 @@ else:
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Whisper (local transcription; ``ffmpeg`` must be on PATH)
+WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "base").strip() or "base"
+
+# Gemini (quiz JSON from transcript; never commit keys — use ``.env`` only)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.environ.get(
+    "GEMINI_MODEL", "gemini-2.0-flash-preview"
+).strip() or "gemini-2.0-flash-preview"
