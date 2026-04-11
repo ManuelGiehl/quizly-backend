@@ -1,10 +1,14 @@
 """Gemini quiz JSON from a Whisper transcript (``google-genai`` SDK)."""
 
 import json
+import logging
 import re
 
 from django.conf import settings
 from google import genai
+from google.genai import errors as genai_errors
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiQuizError(Exception):
@@ -128,6 +132,47 @@ def parse_validated_quiz_payload(data: object) -> dict:
     return {"title": title, "description": desc, "questions": questions}
 
 
+def _detail_from_gemini_exception(exc: BaseException) -> str:
+    """Short detail; ``APIError.__str__`` often embeds huge JSON."""
+    if isinstance(exc, genai_errors.APIError):
+        msg = (exc.message or "").strip()
+        if msg:
+            return f"HTTP {exc.code}: {msg}"[:400]
+        status = (exc.status or "").strip()
+        if status:
+            return f"HTTP {exc.code} ({status})"[:400]
+        return f"HTTP {exc.code}"[:400]
+    text = str(exc).strip()
+    return (text or type(exc).__name__)[:400]
+
+
+def _raise_from_gemini_exception(exc: BaseException) -> None:
+    logger.warning("Gemini generate_content failed", exc_info=True)
+    detail = _detail_from_gemini_exception(exc)
+    raise GeminiQuizError(f"Gemini request failed: {detail}") from exc
+
+
+def _blocked_prompt_message(response: object) -> str | None:
+    feedback = getattr(response, "prompt_feedback", None)
+    if feedback is None:
+        return None
+    reason = getattr(feedback, "block_reason", None)
+    if reason is None:
+        return None
+    extra = (getattr(feedback, "block_reason_message", None) or "").strip()
+    if extra:
+        return f"prompt blocked ({reason}): {extra}"
+    return f"prompt blocked ({reason})"
+
+
+def _finish_reason_hint(response: object) -> str | None:
+    cands = getattr(response, "candidates", None) or []
+    if not cands:
+        return None
+    fr = getattr(cands[0], "finish_reason", None)
+    return str(fr) if fr is not None else None
+
+
 def _response_text_from_client(client: genai.Client, prompt: str) -> str:
     try:
         response = client.models.generate_content(
@@ -135,18 +180,23 @@ def _response_text_from_client(client: genai.Client, prompt: str) -> str:
             contents=prompt,
         )
     except Exception as exc:
-        raise GeminiQuizError("Gemini request failed.") from exc
+        _raise_from_gemini_exception(exc)
+    blocked = _blocked_prompt_message(response)
+    if blocked:
+        raise GeminiQuizError(f"Gemini: {blocked}")
     text = (getattr(response, "text", None) or "").strip()
-    if not text:
-        raise GeminiQuizError("Empty response from Gemini.")
-    return text
+    if text:
+        return text
+    hint = _finish_reason_hint(response) or "no candidates"
+    raise GeminiQuizError(f"Empty response from Gemini ({hint}).")
 
 
 def _call_gemini_text(prompt: str) -> str:
     key = (settings.GEMINI_API_KEY or "").strip()
     if not key:
         raise GeminiQuizError("GEMINI_API_KEY is not set.")
-    client = genai.Client(api_key=key)
+    opts = genai.types.HttpOptions(timeout=settings.GEMINI_HTTP_TIMEOUT_MS)
+    client = genai.Client(api_key=key, http_options=opts)
     return _response_text_from_client(client, prompt)
 
 

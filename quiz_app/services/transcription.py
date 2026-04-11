@@ -40,5 +40,8 @@ def transcribe_audio_file(audio_path: str, model_name: str) -> str:
     try:
         result = model.transcribe(audio_path)
     except Exception as exc:
-        raise TranscriptionError("Whisper transcription failed.") from exc
+        detail = (str(exc).strip() or type(exc).__name__)[:400]
+        raise TranscriptionError(
+            f"Whisper transcription failed: {detail}"
+        ) from exc
     return (result.get("text") or "").strip()

@@ -29,6 +29,17 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
+def _env_positive_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        value = int(str(raw).strip())
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -181,6 +192,7 @@ WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "base").strip() or "base"
 
 # Gemini (quiz JSON from transcript; never commit keys — use ``.env`` only)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.environ.get(
-    "GEMINI_MODEL", "gemini-2.0-flash-preview"
-).strip() or "gemini-2.0-flash-preview"
+# Default ``gemini-2.5-flash`` (fast). Use ``GEMINI_MODEL`` for overrides; avoid stale ``*-preview`` ids.
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+# ``google-genai`` timeout in ms (large transcripts + JSON need headroom).
+GEMINI_HTTP_TIMEOUT_MS = _env_positive_int("GEMINI_HTTP_TIMEOUT_MS", 180000)
