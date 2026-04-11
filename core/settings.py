@@ -18,8 +18,7 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-_REPO_ROOT = BASE_DIR.parent
-load_dotenv(_REPO_ROOT / ".env", encoding="utf-8-sig")
+load_dotenv(BASE_DIR / ".env", encoding="utf-8-sig")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -46,8 +45,8 @@ def _env_positive_int(name: str, default: int) -> int:
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY is not set. Copy .env.example to .env in the project "
-        "root (next to backend/) and set DJANGO_SECRET_KEY — never commit .env."
+        "DJANGO_SECRET_KEY is not set. Copy backend/.env.example to backend/.env "
+        "(next to manage.py) and set DJANGO_SECRET_KEY — never commit .env."
     )
 
 DEBUG = _env_bool("DJANGO_DEBUG", True)
