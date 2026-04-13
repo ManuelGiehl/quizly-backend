@@ -1,3 +1,5 @@
+"""Quiz API routes (list/create, detail/update/delete)."""
+
 from django.urls import path
 
 from . import views

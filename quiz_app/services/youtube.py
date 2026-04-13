@@ -11,10 +11,12 @@ _VIDEO_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 
 
 def _valid_video_id(video_id: str) -> bool:
+    """Return True if the string matches the 11-char YouTube video id format."""
     return bool(_VIDEO_ID_PATTERN.fullmatch(video_id))
 
 
 def _id_from_youtube_com(parsed) -> str | None:
+    """Extract a video id from common youtube.com URL shapes (watch/shorts/embed)."""
     path = parsed.path or ""
     if path == "/watch" or path.startswith("/watch"):
         values = parse_qs(parsed.query).get("v")
@@ -27,6 +29,7 @@ def _id_from_youtube_com(parsed) -> str | None:
 
 
 def _extract_video_id(raw_url: str) -> str | None:
+    """Parse supported YouTube URLs and return the raw video id, otherwise None."""
     raw = (raw_url or "").strip()
     if not raw:
         return None
@@ -78,6 +81,7 @@ def build_audio_download_options(output_template: str) -> dict:
 
 
 def _resolved_download_path(url: str, opts: dict) -> str:
+    """Download via yt-dlp and return the resolved file path on disk."""
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
         path = info.get("filepath") or ydl.prepare_filename(info)

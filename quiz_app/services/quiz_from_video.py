@@ -14,6 +14,7 @@ from quiz_app.services.youtube import download_best_audio, extract_youtube_metad
 
 
 def _title_from_metadata(meta: dict, fallback_video_id: str) -> str:
+    """Derive a safe quiz title from YouTube metadata (fallback: video id)."""
     raw = meta.get("title")
     if isinstance(raw, str) and (t := raw.strip()):
         return t[:255]
@@ -21,21 +22,25 @@ def _title_from_metadata(meta: dict, fallback_video_id: str) -> str:
 
 
 def _ensure_audio_work_dir() -> Path:
+    """Create and return the working directory for temporary audio downloads."""
     root = Path(settings.BASE_DIR) / "media" / "quizly_audio"
     root.mkdir(parents=True, exist_ok=True)
     return root
 
 
 def _download_temp_audio(canonical_url: str, work: Path, stem: str) -> str:
+    """Download best audio for the URL into the work dir and return file path."""
     out_tmpl = str(work / f"{stem}.%(ext)s")
     return download_best_audio(canonical_url, out_tmpl)
 
 
 def _unlink_audio(path: str) -> None:
+    """Best-effort cleanup for temporary audio files."""
     Path(path).unlink(missing_ok=True)
 
 
 def _persist_quiz_and_questions(owner, url, transcript, payload) -> Quiz:
+    """Persist quiz + questions from validated Gemini payload (single DB write path)."""
     quiz = Quiz.objects.create(
         owner=owner,
         title=payload["title"],
@@ -55,6 +60,7 @@ def _persist_quiz_and_questions(owner, url, transcript, payload) -> Quiz:
 
 
 def _title_and_transcript(canonical_url: str) -> tuple[str, str]:
+    """Fetch title metadata, download audio, transcribe, and always clean up audio."""
     video_id = canonical_url.rsplit("v=", 1)[-1]
     meta = extract_youtube_metadata(canonical_url)
     title = _title_from_metadata(meta, video_id)

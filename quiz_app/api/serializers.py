@@ -1,3 +1,5 @@
+"""Serializers for quiz read/write endpoints."""
+
 from rest_framework import serializers
 
 from quiz_app.models import Question, Quiz
@@ -8,6 +10,8 @@ from quiz_app.services.youtube import normalize_youtube_watch_url
 
 
 class QuestionSerializer(serializers.ModelSerializer):
+    """Read-only question representation nested under a quiz."""
+
     class Meta:
         model = Question
         fields = (
@@ -21,6 +25,8 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 
 class QuizDetailSerializer(serializers.ModelSerializer):
+    """Quiz representation including nested questions."""
+
     questions = QuestionSerializer(many=True, read_only=True)
 
     class Meta:
@@ -50,6 +56,8 @@ class QuizPartialUpdateSerializer(serializers.ModelSerializer):
 
 
 class QuizCreateSerializer(serializers.Serializer):
+    """Create a quiz from a YouTube URL via the AI pipeline."""
+
     url = serializers.URLField()
 
     def validate_url(self, value):

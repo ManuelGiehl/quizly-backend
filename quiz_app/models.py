@@ -1,9 +1,11 @@
+"""Database models for persisted quizzes and their questions."""
+
 from django.conf import settings
 from django.db import models
 
 
 class Quiz(models.Model):
-    """A quiz generated from one YouTube video"""
+    """A quiz generated from one YouTube video."""
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,

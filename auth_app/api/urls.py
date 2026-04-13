@@ -1,3 +1,5 @@
+"""Auth API routes (health, register, login, token refresh, me)."""
+
 from django.urls import path
 
 from . import views

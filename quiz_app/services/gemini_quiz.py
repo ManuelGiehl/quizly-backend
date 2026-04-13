@@ -57,6 +57,7 @@ def strip_code_fences(raw: str) -> str:
 
 
 def _slice_json_object(text: str) -> str:
+    """Best-effort: return the substring from first ``{`` to last ``}``."""
     i = text.find("{")
     j = text.rfind("}")
     if i == -1 or j < i:
@@ -65,6 +66,7 @@ def _slice_json_object(text: str) -> str:
 
 
 def _decoded_quiz_dict(raw: str) -> dict:
+    """Parse Gemini output into a dict; tries raw and sliced JSON candidates."""
     base = strip_code_fences(raw)
     for cand in (base, _slice_json_object(base)):
         try:
@@ -77,18 +79,21 @@ def _decoded_quiz_dict(raw: str) -> dict:
 
 
 def _validated_title(raw) -> str:
+    """Validate and normalize the quiz title to a non-empty string."""
     if not isinstance(raw, str) or not (t := raw.strip()):
         raise GeminiQuizError("Invalid or empty title.")
     return t[:255]
 
 
 def _validated_description(raw) -> str:
+    """Validate and normalize the quiz description to a non-empty string."""
     if not isinstance(raw, str) or not (d := raw.strip()):
         raise GeminiQuizError("Invalid or empty description.")
     return d[:150]
 
 
 def _four_option_strings(raw_opts: object, idx: int) -> list[str]:
+    """Return 4 distinct option strings or raise with the question index."""
     if not isinstance(raw_opts, list) or len(raw_opts) != 4:
         raise GeminiQuizError(f"Question {idx}: need 4 options.")
     out = []
@@ -102,6 +107,7 @@ def _four_option_strings(raw_opts: object, idx: int) -> list[str]:
 
 
 def _validated_one_question(obj: object, idx: int) -> dict:
+    """Validate one question object and return the normalized dict for persistence."""
     if not isinstance(obj, dict):
         raise GeminiQuizError(f"Question {idx} must be an object.")
     opts = _four_option_strings(obj.get("question_options"), idx)
@@ -117,6 +123,7 @@ def _validated_one_question(obj: object, idx: int) -> dict:
 
 
 def _validated_questions(raw) -> list[dict]:
+    """Validate the questions array length and each question structure."""
     if not isinstance(raw, list) or len(raw) != 10:
         raise GeminiQuizError("Expected exactly 10 questions.")
     return [_validated_one_question(q, i) for i, q in enumerate(raw, start=1)]
@@ -147,12 +154,14 @@ def _detail_from_gemini_exception(exc: BaseException) -> str:
 
 
 def _raise_from_gemini_exception(exc: BaseException) -> None:
+    """Log the underlying SDK error and raise a concise ``GeminiQuizError``."""
     logger.warning("Gemini generate_content failed", exc_info=True)
     detail = _detail_from_gemini_exception(exc)
     raise GeminiQuizError(f"Gemini request failed: {detail}") from exc
 
 
 def _blocked_prompt_message(response: object) -> str | None:
+    """Return a human-readable prompt block reason, or None when not blocked."""
     feedback = getattr(response, "prompt_feedback", None)
     if feedback is None:
         return None
@@ -166,6 +175,7 @@ def _blocked_prompt_message(response: object) -> str | None:
 
 
 def _finish_reason_hint(response: object) -> str | None:
+    """Extract a finish reason string from the first candidate (best-effort)."""
     cands = getattr(response, "candidates", None) or []
     if not cands:
         return None
@@ -174,6 +184,7 @@ def _finish_reason_hint(response: object) -> str | None:
 
 
 def _response_text_from_client(client: genai.Client, prompt: str) -> str:
+    """Execute the Gemini request and return a non-empty ``response.text``."""
     try:
         response = client.models.generate_content(
             model=settings.GEMINI_MODEL,
@@ -192,6 +203,7 @@ def _response_text_from_client(client: genai.Client, prompt: str) -> str:
 
 
 def _call_gemini_text(prompt: str) -> str:
+    """Create a configured Gemini client (API key + timeout) and return response text."""
     key = (settings.GEMINI_API_KEY or "").strip()
     if not key:
         raise GeminiQuizError("GEMINI_API_KEY is not set.")

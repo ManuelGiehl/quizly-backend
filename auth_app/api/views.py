@@ -1,3 +1,8 @@
+"""Auth API views (function-based DRF endpoints).
+
+Keep views small: validation via serializers, JWT cookie work in ``auth_app.services``.
+"""
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -17,12 +22,14 @@ from .serializers import LoginSerializer, RegisterSerializer
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def health(_request):
+    """Health-check endpoint used for smoke tests and liveness probes."""
     return Response({"status": "ok"})
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
+    """Create a new user account from the registration payload."""
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serializer.create(serializer.validated_data)
@@ -32,6 +39,7 @@ def register(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request):
+    """Validate credentials and set JWT access/refresh as httpOnly cookies."""
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data["user"]
@@ -43,19 +51,21 @@ def login(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout(request):
+    """Clear auth cookies and invalidate refresh token when possible."""
     return build_logout_response(request)
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def token_refresh(request):
+    """Issue a new access token based on the refresh cookie."""
     return build_token_refresh_response(request)
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """Return the authenticated user when the JWT cookie (or header) is valid."""
+    """Return the currently authenticated user (cookie JWT or Bearer token)."""
     user = request.user
     return Response(
         {"id": user.id, "username": user.username, "email": user.email},
